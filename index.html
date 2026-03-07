@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Poly Edge" />
+  <meta name="theme-color" content="#050708" />
+  <title>Polymarket Edge Finder</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    :root {
+      --bg:#050708; --surface:#0c0f12; --surface2:#11161d; --border:#1b2430;
+      --text:#e6edf5; --muted:#8b97a8; --green:#00ff88; --green2:rgba(0,255,136,.16);
+      --red:#ff5d7c; --yellow:#f5c542; --blue:#7b68ee; --card:0 10px 40px rgba(0,0,0,.38);
+      --radius:18px;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    html, body { height:100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
+      background: radial-gradient(circle at top, rgba(0,255,136,.08), transparent 20%), var(--bg);
+      color:var(--text); overflow-x:hidden; -webkit-tap-highlight-color: transparent;
+    }
+    a { color:inherit; }
+    .app { max-width:1200px; margin:0 auto; padding:14px 14px 110px; min-height:100vh; }
+    .topbar {
+      position:sticky; top:0; z-index:40; padding-top: env(safe-area-inset-top);
+      background: linear-gradient(to bottom, rgba(5,7,8,.97), rgba(5,7,8,.88), rgba(5,7,8,0));
+      backdrop-filter: blur(12px);
+    }
+    .topbar-inner {
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      background: rgba(12,15,18,.88); border:1px solid var(--border); box-shadow:var(--card);
+      border-radius:16px; padding:14px 16px; margin-bottom:14px;
+    }
+    .brand { display:flex; gap:12px; align-items:center; min-width:0; }
+    .dot { width:12px; height:12px; border-radius:999px; background:var(--green); box-shadow:0 0 14px var(--green); flex-shrink:0; }
+    .title { font-size:16px; font-weight:800; }
+    .subtitle { color:var(--muted); font-size:12px; margin-top:2px; }
+    .pill { padding:7px 10px; border-radius:999px; background:var(--green2); border:1px solid rgba(0,255,136,.28); color:var(--green); font-size:11px; font-weight:800; white-space:nowrap; }
+
+    .screen { display:none; }
+    .screen.active { display:block; }
+    .hero, .card, .section, .modal-box {
+      background: linear-gradient(180deg, rgba(17,22,29,.98), rgba(12,15,18,.98));
+      border:1px solid var(--border); box-shadow:var(--card); border-radius:var(--radius);
+    }
+    .hero { padding:18px; margin-bottom:16px; }
+    .hero-grid { display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; }
+    .eyebrow { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.12em; margin-bottom:8px; }
+    .big { font-size: clamp(34px, 9vw, 66px); line-height:1; color:var(--green); font-weight:900; letter-spacing:-.04em; }
+    .muted { color:var(--muted); }
+    .subline { margin-top:10px; line-height:1.5; font-size:14px; color:var(--muted); }
+    .subline b { color:var(--text); }
+    .quick { display:grid; grid-template-columns: repeat(2,1fr); gap:10px; }
+    button, .btn {
+      border:none; border-radius:14px; padding:13px 14px; font-size:14px; font-weight:800; cursor:pointer;
+      transition: transform .12s ease, opacity .12s ease;
+    }
+    button:active, .btn:active { transform:scale(.985); }
+    .primary { background:var(--green); color:#06120b; }
+    .secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+    .danger { background:#2a1217; color:#ff9aae; border:1px solid #4b1d28; }
+    .cards { display:grid; grid-template-columns: repeat(4,1fr); gap:12px; margin-bottom:16px; }
+    .card { padding:16px; }
+    .label { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:9px; }
+    .value { font-size:28px; font-weight:900; letter-spacing:-.03em; }
+    .green { color:var(--green); } .red { color:var(--red); } .yellow { color:var(--yellow); }
+
+    .section { padding:16px; margin-bottom:16px; }
+    .section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .section-title { font-size:14px; font-weight:900; letter-spacing:.02em; }
+    .section-sub { font-size:12px; color:var(--muted); }
+    .filters { display:grid; grid-template-columns: 1.1fr .8fr .7fr .7fr .8fr; gap:10px; }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .field label { font-size:12px; color:var(--muted); }
+    input, select, textarea {
+      width:100%; background:#0a0d11; color:var(--text); border:1px solid var(--border); border-radius:12px;
+      padding:12px 12px; font:inherit;
+    }
+    textarea { min-height:160px; resize:vertical; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; }
+
+    .results { display:grid; gap:12px; }
+    .market-card { border:1px solid var(--border); background:#0a0e12; border-radius:16px; padding:14px; }
+    .market-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+    .market-q { font-size:15px; font-weight:800; line-height:1.35; }
+    .market-meta { font-size:12px; color:var(--muted); margin-top:6px; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .chip { font-size:11px; padding:6px 9px; border-radius:999px; background:#11161d; border:1px solid var(--border); color:var(--muted); }
+    .chip.good { color:var(--green); border-color:rgba(0,255,136,.26); background:rgba(0,255,136,.1); }
+    .chip.warn { color:var(--yellow); border-color:rgba(245,197,66,.25); background:rgba(245,197,66,.08); }
+    .chip.bad { color:#ff9aae; border-color:rgba(255,93,124,.24); background:rgba(255,93,124,.08); }
+    .chip.blue { color:#afa5ff; border-color:rgba(123,104,238,.28); background:rgba(123,104,238,.12); }
+    .market-grid { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; margin-top:14px; }
+    .mini { background:#0e1318; border:1px solid var(--border); border-radius:14px; padding:11px; }
+    .mini .k { font-size:11px; color:var(--muted); margin-bottom:7px; }
+    .mini .v { font-size:18px; font-weight:900; }
+    .row-actions { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:12px; }
+    .inline-note { margin-top:8px; font-size:12px; color:var(--muted); }
+    .small { font-size:12px; }
+    .helper { font-size:12px; color:var(--muted); line-height:1.5; }
+    .formula-list { display:grid; gap:10px; }
+    .formula { background:#0a0d11; border:1px solid var(--border); padding:14px; border-radius:14px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .bottom-nav {
+      position:fixed; left:50%; transform:translateX(-50%); bottom:12px; width:min(760px, calc(100% - 18px)); z-index:50;
+      padding-bottom: max(0px, env(safe-area-inset-bottom));
+    }
+    .bottom-nav-inner {
+      display:grid; grid-template-columns: repeat(4,1fr); gap:8px; background:rgba(12,15,18,.95);
+      border:1px solid var(--border); box-shadow:var(--card); border-radius:20px; padding:10px;
+      backdrop-filter: blur(12px);
+    }
+    .tab { background:none; color:var(--muted); border:1px solid transparent; padding:12px 8px; border-radius:14px; font-size:12px; font-weight:800; }
+    .tab.active { color:var(--text); background:#11161d; border-color:var(--border); }
+
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,.58); display:none; align-items:flex-end; z-index:70; }
+    .modal.show { display:flex; }
+    .modal-box { width:min(760px, 100%); margin:auto auto 0; border-bottom-left-radius:0; border-bottom-right-radius:0; padding:16px; }
+
+    .empty { color:var(--muted); text-align:center; padding:18px; border:1px dashed var(--border); border-radius:14px; }
+
+    @media (max-width: 920px) {
+      .hero-grid, .cards, .filters, .market-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .app { padding-left:10px; padding-right:10px; }
+      .hero-grid, .cards, .filters, .market-grid, .row-actions { grid-template-columns: 1fr; }
+      .topbar-inner { align-items:flex-start; }
+      .market-top { flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="dot"></div>
+          <div>
+            <div class="title">Polymarket Edge Finder</div>
+            <div class="subtitle">Static HTML app · GitHub Pages ready</div>
+          </div>
+        </div>
+        <div class="pill" id="statusPill">Idle</div>
+      </div>
+    </div>
+
+    <section id="screen-dashboard" class="screen active">
+      <div class="hero">
+        <div class="hero-grid">
+          <div>
+            <div class="eyebrow">Fast scan mode</div>
+            <div class="big" id="heroCount">0</div>
+            <div class="subline">Markets scored with the 3 fast formulas: <b>binary arb</b>, <b>bucket underpricing</b>, and <b>model edge</b>. Then filtered by <b>liquidity gap</b> quality.</div>
+          </div>
+          <div class="quick">
+            <button class="primary" id="scanBtn">Scan Markets</button>
+            <button class="secondary" id="saveBtn">Save Settings</button>
+            <button class="secondary" id="watchBtn">View Watchlist</button>
+            <button class="secondary" id="helpBtn">How it Works</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="card"><div class="label">Candidates</div><div class="value green" id="statCandidates">0</div></div>
+        <div class="card"><div class="label">Arb Hits</div><div class="value" id="statArb">0</div></div>
+        <div class="card"><div class="label">Bucket Hits</div><div class="value" id="statBucket">0</div></div>
+        <div class="card"><div class="label">Avg Spread</div><div class="value" id="statSpread">--</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Scanner Controls</div>
+            <div class="section-sub">Beginner-friendly defaults are already loaded.</div>
+          </div>
+          <div class="section-sub" id="lastScanLabel">Not scanned yet</div>
+        </div>
+        <div class="filters">
+          <div class="field">
+            <label>Search filter</label>
+            <input id="searchInput" placeholder="btc, fed, election..." />
+          </div>
+          <div class="field">
+            <label>Max markets</label>
+            <select id="limitSelect">
+              <option value="100">100</option>
+              <option value="250" selected>250</option>
+              <option value="400">400</option>
+              <option value="800">800</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Min model edge</label>
+            <select id="minEdgeSelect">
+              <option value="0">0%</option>
+              <option value="0.02">2%</option>
+              <option value="0.05" selected>5%</option>
+              <option value="0.10">10%</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Max avg spread</label>
+            <select id="maxSpreadSelect">
+              <option value="1">Any</option>
+              <option value="0.10">10¢</option>
+              <option value="0.06" selected>6¢</option>
+              <option value="0.03">3¢</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Sort by</label>
+            <select id="sortSelect">
+              <option value="score" selected>Overall score</option>
+              <option value="edge">Model edge</option>
+              <option value="arb">Arbitrage edge</option>
+              <option value="spread">Tightest spread</option>
+            </select>
+          </div>
+        </div>
+        <div class="inline-note">Tip: start with 250 markets. If you push to 800, scan speed depends on your connection and current Polymarket API load.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Top Candidate Markets</div>
+            <div class="section-sub">These are live candidates, not guaranteed profitable trades.</div>
+          </div>
+        </div>
+        <div id="results" class="results"><div class="empty">Tap <b>Scan Markets</b> to pull live markets and rank candidates.</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Bucket Mispricing Groups</div>
+            <div class="section-sub">Best when sibling buckets are truly mutually exclusive.</div>
+          </div>
+        </div>
+        <div id="bucketResults" class="results"><div class="empty">No bucket scan yet.</div></div>
+      </div>
+    </section>
+
+    <section id="screen-models" class="screen">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Probability Engine</div>
+            <div class="section-sub">Use the built-in heuristic, then override or extend it.</div>
+          </div>
+        </div>
+        <div class="formula-list">
+          <div class="formula"><div class="label">Formula 1 · Binary Arbitrage</div><div><code>arbEdge = 1 - (yesMid + noMid)</code></div></div>
+          <div class="formula"><div class="label">Formula 2 · Bucket Underpricing</div><div><code>bucketEdge = 1 - Σ(bucket YES mids)</code></div></div>
+          <div class="formula"><div class="label">Formula 3 · Model Edge</div><div><code>modelEdge = fairProb - marketProb</code></div></div>
+          <div class="formula"><div class="label">Liquidity Quality Check</div><div><code>avgSpread = (yesSpread + noSpread) / 2</code></div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><div><div class="section-title">Heuristic Settings</div><div class="section-sub">These shape the default model before manual overrides.</div></div></div>
+        <div class="filters">
+          <div class="field"><label>Cheap yes boost</label><input id="cheapBoostInput" type="number" step="0.01" min="0" max="0.25" value="0.02"></div>
+          <div class="field"><label>Tight spread boost</label><input id="tightBoostInput" type="number" step="0.01" min="0" max="0.10" value="0.01"></div>
+          <div class="field"><label>Thin spread penalty</label><input id="thinPenaltyInput" type="number" step="0.01" min="0" max="0.20" value="0.03"></div>
+          <div class="field"><label>Near expiry penalty</label><input id="expiryPenaltyInput" type="number" step="0.01" min="0" max="0.20" value="0.02"></div>
+          <div class="field"><label>High arb boost</label><input id="arbBoostInput" type="number" step="0.01" min="0" max="0.20" value="0.02"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><div><div class="section-title">Custom Model Hook</div><div class="section-sub">Optional. Return a probability between 0.01 and 0.99. Leave blank to use the heuristic only.</div></div></div>
+        <textarea id="customModelInput">// Optional custom model.
+// You get (market, live, helpers).
+// Return a probability like 0.58.
+
+// Example:
+// if ((market.question || '').toLowerCase().includes('bitcoin') && live.yesMid < 0.35) {
+//   return Math.min(0.99, live.yesMid + 0.05);
+// }
+// return null;</textarea>
+        <div class="actions" style="margin-top:12px;">
+          <button class="secondary" id="testModelBtn">Test Custom Model</button>
+          <button class="secondary" id="resetModelBtn">Reset Example</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-watchlist" class="screen">
+      <div class="section">
+        <div class="section-head"><div><div class="section-title">Watchlist</div><div class="section-sub">Saved from candidate cards.</div></div></div>
+        <div id="watchlistResults" class="results"><div class="empty">No saved markets yet.</div></div>
+      </div>
+    </section>
+
+    <section id="screen-settings" class="screen">
+      <div class="section">
+        <div class="section-head"><div><div class="section-title">GitHub / iPhone Notes</div><div class="section-sub">This package is ready to upload to the root of a public GitHub repo.</div></div></div>
+        <div class="helper">
+          1. Upload all files to the root of your repo.<br>
+          2. Turn on <b>GitHub Pages</b> from <b>Settings → Pages</b>.<br>
+          3. Use <b>Deploy from a branch → main → /(root)</b>.<br>
+          4. Open the Pages link in Safari and tap <b>Share → Add to Home Screen</b>.
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><div><div class="section-title">App Notes</div><div class="section-sub">Read this before trading.</div></div></div>
+        <div class="helper">
+          This app reads public market data and ranks candidates. It does not place trades. Bucket opportunities depend on correct grouping. Arbitrage opportunities can disappear once spreads, fees, and slippage are considered. Use this as a screening tool, then verify manually.
+        </div>
+      </div>
+      <div class="section">
+        <div class="actions">
+          <button class="secondary" id="exportBtn">Export Saved Data</button>
+          <button class="danger" id="clearBtn">Clear Saved Data</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="tab active" data-screen="dashboard">Dashboard</button>
+      <button class="tab" data-screen="models">Models</button>
+      <button class="tab" data-screen="watchlist">Watchlist</button>
+      <button class="tab" data-screen="settings">Settings</button>
+    </div>
+  </div>
+
+  <div class="modal" id="helpModal">
+    <div class="modal-box">
+      <div class="section-head"><div><div class="section-title">How this app scores markets</div><div class="section-sub">Beginner version</div></div><button class="secondary" id="closeHelpBtn">Close</button></div>
+      <div class="helper">
+        <b>1)</b> It fetches live Polymarket markets and their YES/NO token IDs.<br><br>
+        <b>2)</b> It reads midpoint and spread for each side.<br><br>
+        <b>3)</b> It computes four checks:<br>
+        • YES + NO under $1<br>
+        • grouped bucket totals under $1<br>
+        • liquidity quality from spreads<br>
+        • your model edge = fair probability minus market probability<br><br>
+        <b>4)</b> It ranks candidates and lets you save the best ones.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'polyEdgeFinder.v2';
+    const state = {
+      markets: [],
+      rows: [],
+      buckets: [],
+      watchlist: [],
+      manualFair: {},
+      settings: {
+        limit: 250,
+        minEdge: 0.05,
+        maxSpread: 0.06,
+        sort: 'score',
+        search: '',
+        cheapBoost: 0.02,
+        tightBoost: 0.01,
+        thinPenalty: 0.03,
+        expiryPenalty: 0.02,
+        arbBoost: 0.02,
+        customModelCode: ''
+      }
+    };
+
+    const GAMMA_BASE = 'https://gamma-api.polymarket.com';
+    const CLOB_BASE = 'https://clob.polymarket.com';
+
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => [...document.querySelectorAll(sel)];
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        watchlist: state.watchlist,
+        manualFair: state.manualFair,
+        settings: state.settings
+      }));
+    }
+
+    function loadState() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        if (raw.watchlist) state.watchlist = raw.watchlist;
+        if (raw.manualFair) state.manualFair = raw.manualFair;
+        if (raw.settings) state.settings = { ...state.settings, ...raw.settings };
+      } catch {}
+    }
+
+    function applySettingsToUI() {
+      $('#limitSelect').value = String(state.settings.limit);
+      $('#minEdgeSelect').value = String(state.settings.minEdge);
+      $('#maxSpreadSelect').value = String(state.settings.maxSpread);
+      $('#sortSelect').value = state.settings.sort;
+      $('#searchInput').value = state.settings.search;
+      $('#cheapBoostInput').value = state.settings.cheapBoost;
+      $('#tightBoostInput').value = state.settings.tightBoost;
+      $('#thinPenaltyInput').value = state.settings.thinPenalty;
+      $('#expiryPenaltyInput').value = state.settings.expiryPenalty;
+      $('#arbBoostInput').value = state.settings.arbBoost;
+      $('#customModelInput').value = state.settings.customModelCode || $('#customModelInput').value;
+    }
+
+    function readSettingsFromUI() {
+      state.settings.limit = Number($('#limitSelect').value);
+      state.settings.minEdge = Number($('#minEdgeSelect').value);
+      state.settings.maxSpread = Number($('#maxSpreadSelect').value);
+      state.settings.sort = $('#sortSelect').value;
+      state.settings.search = $('#searchInput').value.trim();
+      state.settings.cheapBoost = Number($('#cheapBoostInput').value);
+      state.settings.tightBoost = Number($('#tightBoostInput').value);
+      state.settings.thinPenalty = Number($('#thinPenaltyInput').value);
+      state.settings.expiryPenalty = Number($('#expiryPenaltyInput').value);
+      state.settings.arbBoost = Number($('#arbBoostInput').value);
+      state.settings.customModelCode = $('#customModelInput').value;
+    }
+
+    function setStatus(text) { $('#statusPill').textContent = text; }
+    function fmtPct(n) { return Number.isFinite(n) ? `${(n * 100).toFixed(1)}%` : '--'; }
+    function fmtCents(n) { return Number.isFinite(n) ? `${(n * 100).toFixed(1)}¢` : '--'; }
+    function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+    function avg(arr) { const x = arr.filter(Number.isFinite); return x.length ? x.reduce((s,v)=>s+v,0)/x.length : NaN; }
+    function daysUntil(dateStr) {
+      if (!dateStr) return null;
+      const t = new Date(dateStr).getTime();
+      if (!Number.isFinite(t)) return null;
+      return Math.max(0, (t - Date.now()) / 86400000);
+    }
+    function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+    function compileCustomModel(code) {
+      const trimmed = (code || '').trim();
+      if (!trimmed) return null;
+      try {
+        return new Function('market', 'live', 'helpers', `${trimmed}\nreturn null;`);
+      } catch (err) {
+        alert('Custom model has a syntax error.\n\n' + err.message);
+        return null;
+      }
+    }
+
+    async function fetchMarkets(limit = 250) {
+      const url = `${GAMMA_BASE}/markets?limit=${limit}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch markets');
+      const data = await res.json();
+      return data.filter(m =>
+        m.active !== false &&
+        m.closed !== true &&
+        m.archived !== true &&
+        m.enableOrderBook === true &&
+        Array.isArray(m.clobTokenIds) &&
+        m.clobTokenIds.length >= 2
+      ).map(m => ({
+        id: String(m.id),
+        question: m.question || 'Untitled market',
+        slug: m.slug || '',
+        category: m.category || '',
+        endDate: m.endDate || m.end_date || m.end_date_iso || null,
+        tags: Array.isArray(m.tags) ? m.tags : [],
+        yesToken: m.clobTokenIds[0],
+        noToken: m.clobTokenIds[1],
+        raw: m
+      }));
+    }
+
+    async function fetchMidpoint(tokenId) {
+      const res = await fetch(`${CLOB_BASE}/midpoint?token_id=${encodeURIComponent(tokenId)}`);
+      if (!res.ok) return NaN;
+      const data = await res.json();
+      return parseFloat(data.mid ?? data.midpoint ?? data.mid_price ?? 'NaN');
+    }
+
+    async function fetchSpread(tokenId) {
+      const res = await fetch(`${CLOB_BASE}/spread?token_id=${encodeURIComponent(tokenId)}`);
+      if (!res.ok) return NaN;
+      const data = await res.json();
+      return parseFloat(data.spread ?? 'NaN');
+    }
+
+    async function fetchBook(tokenId) {
+      const res = await fetch(`${CLOB_BASE}/book?token_id=${encodeURIComponent(tokenId)}`);
+      if (!res.ok) return null;
+      return await res.json();
+    }
+
+    async function fetchLiveForMarket(market) {
+      const [yesMid, noMid, yesSpread, noSpread] = await Promise.all([
+        fetchMidpoint(market.yesToken),
+        fetchMidpoint(market.noToken),
+        fetchSpread(market.yesToken),
+        fetchSpread(market.noToken)
+      ]);
+
+      let yesBook = null, noBook = null;
+      const avgSpread = avg([yesSpread, noSpread]);
+      if (Number.isFinite(avgSpread) && avgSpread <= 0.08) {
+        [yesBook, noBook] = await Promise.all([
+          fetchBook(market.yesToken),
+          fetchBook(market.noToken)
+        ]);
+      }
+
+      return { yesMid, noMid, yesSpread, noSpread, yesBook, noBook };
+    }
+
+    async function mapWithConcurrency(items, limit, mapper) {
+      const out = new Array(items.length);
+      let i = 0;
+      async function worker() {
+        while (i < items.length) {
+          const idx = i++;
+          try { out[idx] = await mapper(items[idx], idx); }
+          catch (e) { out[idx] = { error: e }; }
+        }
+      }
+      const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
+      await Promise.all(workers);
+      return out;
+    }
+
+    function parseTop(book) {
+      const bestBid = book?.bids?.length ? parseFloat(book.bids[0].price) : NaN;
+      const bestAsk = book?.asks?.length ? parseFloat(book.asks[0].price) : NaN;
+      return {
+        bestBid,
+        bestAsk,
+        spread: Number.isFinite(bestBid) && Number.isFinite(bestAsk) ? bestAsk - bestBid : NaN
+      };
+    }
+
+    function detectLiquidityGap(live) {
+      const spreads = [live.yesSpread, live.noSpread].filter(Number.isFinite);
+      const avgSpread = spreads.length ? spreads.reduce((a,b)=>a+b,0)/spreads.length : NaN;
+      let label = 'Unknown', score = 0;
+      if (Number.isFinite(avgSpread)) {
+        if (avgSpread <= 0.01) { label = 'Tight'; score = 3; }
+        else if (avgSpread <= 0.03) { label = 'Tradable'; score = 2; }
+        else if (avgSpread <= 0.06) { label = 'Thin'; score = 1; }
+        else { label = 'Gap Risk'; score = 0; }
+      }
+      const yesTop = live.yesBook ? parseTop(live.yesBook) : null;
+      const noTop = live.noBook ? parseTop(live.noBook) : null;
+      return { avgSpread, label, score, yesTop, noTop, hasGap: Number.isFinite(avgSpread) && avgSpread >= 0.05 };
+    }
+
+    function analyzeBinaryArb(live) {
+      if (!Number.isFinite(live.yesMid) || !Number.isFinite(live.noMid)) return { valid:false, grossEdge:NaN, total:NaN };
+      const total = live.yesMid + live.noMid;
+      const grossEdge = 1 - total;
+      return {
+        valid:true,
+        total,
+        grossEdge,
+        isArb: total < 1,
+        isStrongArb: total < 0.97
+      };
+    }
+
+    function normalizeBucketKey(question) {
+      return (question || '')
+        .replace(/\$?\d+[kKmM]?(\s*[-–to]+\s*\$?\d+[kKmM]?)?/g, '{RANGE}')
+        .replace(/\b(yes|no)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    }
+
+    function groupBucketMarkets(markets) {
+      const map = new Map();
+      for (const m of markets) {
+        const key = normalizeBucketKey(m.question);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(m);
+      }
+      return [...map.entries()].map(([key, items]) => ({ key, items }));
+    }
+
+    function heuristicProbability(market, live, arb, liq) {
+      let p = Number.isFinite(live.yesMid) ? live.yesMid : 0.5;
+      const s = state.settings;
+      if (Number.isFinite(live.yesMid) && live.yesMid < 0.2) p += s.cheapBoost;
+      if (Number.isFinite(liq.avgSpread) && liq.avgSpread <= 0.02) p += s.tightBoost;
+      if (Number.isFinite(liq.avgSpread) && liq.avgSpread > 0.05) p -= s.thinPenalty;
+      if (arb.isStrongArb) p += s.arbBoost;
+      const d = daysUntil(market.endDate);
+      if (d !== null && d < 3) p -= s.expiryPenalty;
+      const q = (market.question || '').toLowerCase();
+      if ((q.includes('bitcoin') || q.includes('btc')) && Number.isFinite(live.yesMid) && live.yesMid < 0.35) p += 0.02;
+      if ((q.includes('fed') || q.includes('rate cut')) && d !== null && d < 30) p -= 0.01;
+      return clamp(p, 0.01, 0.99);
+    }
+
+    function finalModelProbability(market, live, arb, liq) {
+      const manual = state.manualFair[market.id];
+      if (Number.isFinite(manual)) return clamp(manual, 0.01, 0.99);
+      const customFn = compileCustomModel(state.settings.customModelCode);
+      if (typeof customFn === 'function') {
+        try {
+          const out = customFn(market, live, { daysUntil, clamp, avg, arb, liq });
+          if (Number.isFinite(out)) return clamp(out, 0.01, 0.99);
+        } catch (err) {
+          console.warn('Custom model failed', err);
+        }
+      }
+      return heuristicProbability(market, live, arb, liq);
+    }
+
+    function analyzeMarket(market, live) {
+      const arb = analyzeBinaryArb(live);
+      const liq = detectLiquidityGap(live);
+      const modelProb = finalModelProbability(market, live, arb, liq);
+      const marketProb = live.yesMid;
+      const edge = Number.isFinite(marketProb) ? modelProb - marketProb : NaN;
+      let signal = 'No Edge';
+      if (edge >= 0.10) signal = 'Strong Buy';
+      else if (edge >= 0.05) signal = 'Buy';
+      else if (edge >= 0.02) signal = 'Watch';
+      const score = (Number.isFinite(edge) ? edge * 100 : -999)
+        + (arb.valid ? arb.grossEdge * 80 : 0)
+        + liq.score * 2
+        - (Number.isFinite(liq.avgSpread) ? liq.avgSpread * 10 : 0);
+      return {
+        market, live, arb, liq, modelProb, edge, signal, score,
+        passes: Number.isFinite(edge) && edge >= state.settings.minEdge && (!Number.isFinite(liq.avgSpread) || liq.avgSpread <= state.settings.maxSpread)
+      };
+    }
+
+    function sortRows(rows) {
+      const sort = state.settings.sort;
+      const arr = [...rows];
+      arr.sort((a,b) => {
+        if (sort === 'edge') return (b.edge || -999) - (a.edge || -999);
+        if (sort === 'arb') return (b.arb?.grossEdge || -999) - (a.arb?.grossEdge || -999);
+        if (sort === 'spread') return (a.liq?.avgSpread || 999) - (b.liq?.avgSpread || 999);
+        return (b.score || -999) - (a.score || -999);
+      });
+      return arr;
+    }
+
+    function filterRows(rows) {
+      const q = state.settings.search.toLowerCase();
+      return rows.filter(r => {
+        if (!r.passes) return false;
+        if (!q) return true;
+        return (r.market.question || '').toLowerCase().includes(q);
+      });
+    }
+
+    function renderRows() {
+      const root = $('#results');
+      const rows = filterRows(sortRows(state.rows));
+      $('#heroCount').textContent = String(rows.length);
+      $('#statCandidates').textContent = String(rows.length);
+      $('#statArb').textContent = String(state.rows.filter(r => r.arb.isArb).length);
+      $('#statBucket').textContent = String(state.buckets.filter(b => b.total < 1).length);
+      $('#statSpread').textContent = fmtCents(avg(state.rows.map(r => r.liq.avgSpread)));
+      if (!rows.length) {
+        root.innerHTML = '<div class="empty">No markets match your current filters.</div>';
+        return;
+      }
+      root.innerHTML = rows.slice(0, 100).map(r => {
+        const m = r.market;
+        const saved = state.watchlist.some(w => w.id === m.id);
+        const manualVal = state.manualFair[m.id];
+        return `
+          <div class="market-card">
+            <div class="market-top">
+              <div>
+                <div class="market-q">${escapeHtml(m.question)}</div>
+                <div class="market-meta">${escapeHtml(m.category || 'Uncategorized')} · ${m.endDate ? new Date(m.endDate).toLocaleString() : 'No end date'}</div>
+              </div>
+              <div class="chips">
+                <span class="chip ${r.signal === 'Strong Buy' ? 'good' : r.signal === 'Buy' ? 'blue' : 'warn'}">${r.signal}</span>
+                <span class="chip ${r.liq.score >= 2 ? 'good' : r.liq.score === 1 ? 'warn' : 'bad'}">${r.liq.label}</span>
+                ${r.arb.isArb ? `<span class="chip good">Arb ${fmtPct(r.arb.grossEdge)}</span>` : ''}
+              </div>
+            </div>
+            <div class="market-grid">
+              <div class="mini"><div class="k">YES mid</div><div class="v">${fmtPct(r.live.yesMid)}</div></div>
+              <div class="mini"><div class="k">NO mid</div><div class="v">${fmtPct(r.live.noMid)}</div></div>
+              <div class="mini"><div class="k">Avg spread</div><div class="v">${fmtCents(r.liq.avgSpread)}</div></div>
+              <div class="mini"><div class="k">Model fair %</div><div class="v ${r.edge >= 0 ? 'green' : 'red'}">${fmtPct(r.modelProb)}</div></div>
+              <div class="mini"><div class="k">Model edge</div><div class="v ${r.edge >= 0 ? 'green' : 'red'}">${fmtPct(r.edge)}</div></div>
+            </div>
+            <div class="row-actions">
+              <input data-fair-id="${m.id}" type="number" min="1" max="99" step="1" placeholder="Set your fair %" value="${Number.isFinite(manualVal) ? Math.round(manualVal * 100) : ''}">
+              <button class="secondary" data-watch-id="${m.id}">${saved ? 'Remove from Watchlist' : 'Save to Watchlist'}</button>
+            </div>
+            <div class="inline-note">Fast score uses: binary arb + bucket underpricing + model edge + liquidity gap check.</div>
+          </div>
+        `;
+      }).join('');
+
+      $$('[data-fair-id]').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const id = inp.getAttribute('data-fair-id');
+          const v = Number(inp.value);
+          if (Number.isFinite(v) && v >= 1 && v <= 99) state.manualFair[id] = v / 100;
+          else delete state.manualFair[id];
+          saveState();
+          state.rows = state.rows.map(row => row.market.id === id ? analyzeMarket(row.market, row.live) : row);
+          renderRows();
+          renderWatchlist();
+        });
+      });
+
+      $$('[data-watch-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-watch-id');
+          const row = state.rows.find(r => r.market.id === id);
+          const idx = state.watchlist.findIndex(w => w.id === id);
+          if (idx >= 0) state.watchlist.splice(idx, 1);
+          else if (row) state.watchlist.unshift({ id, question: row.market.question });
+          saveState();
+          renderRows();
+          renderWatchlist();
+        });
+      });
+    }
+
+    function renderBuckets() {
+      const root = $('#bucketResults');
+      const hits = state.buckets.filter(b => b.entries.length >= 3 && b.total < 1).sort((a,b)=>a.total-b.total).slice(0, 30);
+      if (!hits.length) {
+        root.innerHTML = '<div class="empty">No clear bucket underpricing groups found in this scan.</div>';
+        return;
+      }
+      root.innerHTML = hits.map(b => `
+        <div class="market-card">
+          <div class="market-top">
+            <div>
+              <div class="market-q">${escapeHtml(b.entries[0]?.question?.replace(/\$?\d+[kKmM]?(\s*[-–to]+\s*\$?\d+[kKmM]?)?/g, '[bucket]') || b.key)}</div>
+              <div class="market-meta">${b.entries.length} grouped buckets</div>
+            </div>
+            <div class="chips">
+              <span class="chip good">Bucket edge ${fmtPct(1 - b.total)}</span>
+            </div>
+          </div>
+          <div class="market-grid">
+            <div class="mini"><div class="k">Bucket total</div><div class="v">${fmtPct(b.total)}</div></div>
+            <div class="mini"><div class="k">Underpricing</div><div class="v green">${fmtPct(1 - b.total)}</div></div>
+            <div class="mini"><div class="k">Lowest bucket</div><div class="v">${fmtPct(Math.min(...b.entries.map(e => e.prob)))}</div></div>
+            <div class="mini"><div class="k">Highest bucket</div><div class="v">${fmtPct(Math.max(...b.entries.map(e => e.prob)))}</div></div>
+            <div class="mini"><div class="k">Check manually</div><div class="v yellow">Yes</div></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderWatchlist() {
+      const root = $('#watchlistResults');
+      if (!state.watchlist.length) {
+        root.innerHTML = '<div class="empty">No saved markets yet.</div>';
+        return;
+      }
+      root.innerHTML = state.watchlist.map(w => {
+        const row = state.rows.find(r => r.market.id === w.id);
+        return `
+          <div class="market-card">
+            <div class="market-top">
+              <div>
+                <div class="market-q">${escapeHtml(w.question)}</div>
+                <div class="market-meta">${row ? `${fmtPct(row.live.yesMid)} YES · ${fmtPct(row.edge)} model edge · ${row.liq.label}` : 'Scan again to refresh live values'}</div>
+              </div>
+              <button class="secondary" data-remove-watch="${w.id}">Remove</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      $$('[data-remove-watch]').forEach(btn => btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-remove-watch');
+        state.watchlist = state.watchlist.filter(w => w.id !== id);
+        saveState();
+        renderWatchlist();
+        renderRows();
+      }));
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+
+    async function runScan() {
+      readSettingsFromUI();
+      saveState();
+      setStatus('Scanning…');
+      $('#scanBtn').disabled = true;
+      try {
+        const markets = await fetchMarkets(state.settings.limit);
+        state.markets = markets;
+        const rows = [];
+        const liveMap = new Map();
+        const liveResults = await mapWithConcurrency(markets, 12, async (market, idx) => {
+          if (idx && idx % 40 === 0) setStatus(`Scanning… ${idx}/${markets.length}`);
+          return { market, live: await fetchLiveForMarket(market) };
+        });
+
+        for (const item of liveResults) {
+          if (!item || item.error || !item.market) continue;
+          liveMap.set(item.market.id, item.live);
+          rows.push(analyzeMarket(item.market, item.live));
+        }
+        state.rows = rows;
+
+        const groups = groupBucketMarkets(markets);
+        state.buckets = groups.map(g => {
+          const entries = g.items.map(m => ({ marketId: m.id, question: m.question, prob: liveMap.get(m.id)?.yesMid }))
+            .filter(e => Number.isFinite(e.prob));
+          const total = entries.reduce((s,e)=>s+e.prob,0);
+          return { key: g.key, entries, total };
+        });
+
+        $('#lastScanLabel').textContent = 'Last scan: ' + new Date().toLocaleString();
+        renderRows();
+        renderBuckets();
+        renderWatchlist();
+        setStatus('Ready');
+      } catch (err) {
+        console.error(err);
+        setStatus('Error');
+        alert('Scan failed.\n\nTry again in a moment. If you opened this from a local file, use GitHub Pages or another web host.');
+      } finally {
+        $('#scanBtn').disabled = false;
+      }
+    }
+
+    function switchScreen(name) {
+      $$('.screen').forEach(el => el.classList.toggle('active', el.id === `screen-${name}`));
+      $$('.tab').forEach(el => el.classList.toggle('active', el.dataset.screen === name));
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify({ watchlist: state.watchlist, manualFair: state.manualFair, settings: state.settings }, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'polymarket-edge-data.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function resetExampleCode() {
+      $('#customModelInput').value = `// Optional custom model.\n// You get (market, live, helpers).\n// Return a probability like 0.58.\n\n// Example:\n// if ((market.question || '').toLowerCase().includes('bitcoin') && live.yesMid < 0.35) {\n//   return Math.min(0.99, live.yesMid + 0.05);\n// }\n// return null;`;
+      readSettingsFromUI(); saveState();
+    }
+
+    function bindUI() {
+      $('#scanBtn').addEventListener('click', runScan);
+      $('#saveBtn').addEventListener('click', () => { readSettingsFromUI(); saveState(); setStatus('Saved'); setTimeout(()=>setStatus('Idle'), 900); });
+      $('#watchBtn').addEventListener('click', () => switchScreen('watchlist'));
+      $('#helpBtn').addEventListener('click', () => $('#helpModal').classList.add('show'));
+      $('#closeHelpBtn').addEventListener('click', () => $('#helpModal').classList.remove('show'));
+      $('#helpModal').addEventListener('click', (e) => { if (e.target.id === 'helpModal') $('#helpModal').classList.remove('show'); });
+      $('#testModelBtn').addEventListener('click', () => {
+        readSettingsFromUI();
+        const fn = compileCustomModel(state.settings.customModelCode);
+        if (fn) alert('Custom model compiled successfully.');
+      });
+      $('#resetModelBtn').addEventListener('click', resetExampleCode);
+      $('#exportBtn').addEventListener('click', exportData);
+      $('#clearBtn').addEventListener('click', () => {
+        if (!confirm('Clear saved settings, overrides, and watchlist?')) return;
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      });
+      ['#limitSelect','#minEdgeSelect','#maxSpreadSelect','#sortSelect','#searchInput','#cheapBoostInput','#tightBoostInput','#thinPenaltyInput','#expiryPenaltyInput','#arbBoostInput','#customModelInput'].forEach(sel => {
+        $(sel).addEventListener('change', () => { readSettingsFromUI(); saveState(); });
+      });
+      $$('.tab').forEach(tab => tab.addEventListener('click', () => switchScreen(tab.dataset.screen)));
+    }
+
+    loadState();
+    applySettingsToUI();
+    bindUI();
+    renderWatchlist();
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+    }
+  </script>
+</body>
+</html>
