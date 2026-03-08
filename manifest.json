@@ -1,0 +1,20 @@
+{
+  "name": "Polymarket Edge Finder",
+  "short_name": "Poly Edge",
+  "start_url": "./index.html?v=patch1",
+  "display": "standalone",
+  "background_color": "#050708",
+  "theme_color": "#050708",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
